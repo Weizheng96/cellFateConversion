@@ -96,7 +96,7 @@ for channel=1:2
         cellMap(:,:,:,t,channel)=imresize3(cellMap_PCrefine(:,:,:,t,channel),[X,Y,Z],'nearest');
     end
 end
-clear dat_crop cellMap_PCrefine;
+clear dat_crop cellMap_PCrefine dat;
 %% display detection
 % imOut1=visDataVideo(dat2D);
 % imOut2=visDataVideo(cellMap_PCrefine);
@@ -131,9 +131,12 @@ end
 
 clear cellMap;
 %%
+load(datPath);
+dat=double(dat_crop);
+
 disp("Write tif...");
 imOut1=uint8(visDataVideo3D(dat)*255);
-imOut2=uint8(visDataVideo3D(double(linkMap),"colorful"));
+imOut2=uint8(visDataVideo3D(double(linkMap),"colorful")*255);
 imOut=cat(2,imOut1,imOut2);
 cd(datafolderPath);
 write4dTiffRGB(imOut,"Example_"+sampleCnt+"_"+Version+".tif");
