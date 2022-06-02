@@ -12,7 +12,7 @@ function [trackG,para,DetectionRegion]=buildGraph2(ID_loc2glo,ID_glo2loc,detecti
 [X,Y,Z,T]=size(detection_corrected);
 N0=length(ID_glo2loc);
 MINORCOST=10^-2;
-MAXCOST=10;
+MAXCOST=100;
 %% get REGION of each detection
 DetectionRegion=cell(N0,1);
 tic

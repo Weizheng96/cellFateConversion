@@ -89,20 +89,17 @@ clear DtMap;
 load(datPath);
 dat=double(dat_crop);
 [X,Y,Z,T,C]=size(dat);
-cellMap=zeros(X,Y,Z,T,C);
+cellMap=zeros(X,Y,Z,T,C,"uint16");
 for channel=1:2
     parfor t=1:T
         disp("Resize:"+channel+":"+t);
-        cellMap(:,:,:,t,channel)=imresize3(cellMap_PCrefine(:,:,:,t,channel),[X,Y,Z],'nearest');
+        cellMap(:,:,:,t,channel)=uint16(imresize3(cellMap_PCrefine(:,:,:,t,channel),[X,Y,Z],'nearest'));
     end
 end
 clear dat_crop cellMap_PCrefine dat;
-%% display detection
-% imOut1=visDataVideo(dat2D);
-% imOut2=visDataVideo(cellMap_PCrefine);
-% imOut=cat(2,imOut1,imOut2);
-% implay(imOut) 
-% implay(mat2gray(double(linkMap(:,:,:,200,1))))
+%% save detection result
+cd(datafolderPath);
+save("Example_"+sampleCnt+"_"+Version+"_cellMap.mat","cellMap",'-v7.3');
 %% link
 linkMap=zeros(X,Y,Z,T,2,"uint16");
 for channel=1:2

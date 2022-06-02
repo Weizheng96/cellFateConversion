@@ -1,9 +1,9 @@
 %% 3D global threshold + principal curvature + watershed
 %% need large memory
 clear; close all;
-tic;
+
 %% parameters
-sampleCnt=1;
+sampleCnt=2;
 datafolderPath="E:\Project\ZhirongWang\data\3D\examples";
 datPath=datafolderPath+"/dat_"+sampleCnt+".mat";
 minSz = 500;
@@ -54,6 +54,7 @@ for channel=1:2
     end
 end
 PC_seed=datPC<0;
+clear dat;
 %%
 % implay(mat2gray(datPC(:,:,:,246,1)))
 % implay(mat2gray(dat(:,:,:,246,1)))
@@ -64,7 +65,7 @@ smoothingfactor_2D=smoothingfactor(1);
 SE_large = ones(smoothingfactor*2+1);
 
 
-cellMap_PCrefine=zeros(size(dat));
+cellMap_PCrefine=zeros(size(PC_seed));
 
 for channel=1:2
     parfor t=1:T
@@ -95,13 +96,10 @@ for channel=1:2
         cellMap(:,:,:,t,channel)=imresize3(cellMap_PCrefine(:,:,:,t,channel),[X,Y,Z],'nearest');
     end
 end
-clear dat_crop cellMap_PCrefine;
-%% display detection
-% imOut1=visDataVideo(dat2D);
-% imOut2=visDataVideo(cellMap_PCrefine);
-% imOut=cat(2,imOut1,imOut2);
-% implay(imOut) 
-% implay(mat2gray(double(linkMap(:,:,:,200,1))))
+clear dat_crop cellMap_PCrefine dat;
+%% save detection result
+cd(datafolderPath);
+save("Example_"+sampleCnt+"_"+Version+"_cellMap.mat","cellMap",'-v7.3');
 %% link
 linkMap=zeros(X,Y,Z,T,2,"uint16");
 for channel=1:2
@@ -130,15 +128,16 @@ end
 
 clear cellMap;
 %%
+load(datPath);
+dat=double(dat_crop);
+
 disp("Write tif...");
-imOut1=visDataVideo3D(dat);
-imOut2=visDataVideo3D(double(linkMap),"colorful");
+imOut1=uint8(visDataVideo3D(dat)*255);
+imOut2=uint8(visDataVideo3D(double(linkMap),"colorful")*255);
 imOut=cat(2,imOut1,imOut2);
 cd(datafolderPath);
 write4dTiffRGB(imOut,"Example_"+sampleCnt+"_"+Version+".tif");
 
 imOutMapPro=squeeze(max(imOut,[],4));
 tifwrite(imOutMapPro, "Example_"+sampleCnt+"_"+Version+"_MaxPro.tif");
-
-%%
-time=toc
+save("Example_"+sampleCnt+"_"+Version+"_linkMap.mat","linkMap",'-v7.3');
