@@ -1,0 +1,75 @@
+%% iterative synquant
+%% 
+
+%% parameters
+sampleCnt=1;
+datafolderPath="E:\Project\ZhirongWang\data\3D\examples";
+datPath=datafolderPath+"\dat_"+sampleCnt+".mat";
+minSZ = 100;
+maxSZ = 5000;
+smoothingfactor=3;
+detectionThreshold=2;
+%% addpath 
+srcPath = fileparts(which('main_V7.m')); 
+addpath(genpath(srcPath));
+%% read data
+load(datPath);
+dat=squeeze(max(double(dat_crop),[],3));
+%% detection
+[X,Y,T,~]=size(dat);
+ZMap=zeros(size(dat));
+MuLst=zeros(2,1);SigmaLst=zeros(2,1);
+
+for channel=1:2
+    [Mu,Sigma]=estimateNoiseMaxPro(dat(:,:,:,channel));
+    MuLst(channel)=Mu;SigmaLst(channel)=Sigma;
+    parfor t=1:T
+        disp(channel+":"+t);
+        ZMap(:,:,t,channel) = synquant_2D_iter(dat(:,:,t,channel),minSZ,maxSZ,smoothingfactor,Mu,Sigma,detectionThreshold);
+    end
+end
+
+DtMap=ZMap>detectionThreshold;
+%%
+imOut1=visDataVideo(dat);
+imOut2=visDataVideo(DtMap);
+imOut=cat(2,imOut1,imOut2);
+implay(imOut)
+%% refine by PC
+SE = strel("disk",smoothingfactor);
+SE_large = strel("disk",smoothingfactor);
+
+cellMap_PCrefine=zeros(size(dat));
+seedMap=zeros(size(dat));
+
+for channel=1:2
+    parfor t=1:T
+        disp(channel+":"+t);
+        PCscoreMap = principalCurvature2d(dat(:,:,t,channel), smoothingfactor);
+%         [gx,gy] = imgradient(imgaussian(dat(:,:,t,channel),1));
+        [gx,gy] = imgradient(dat(:,:,t,channel));
+        GradScoreMap=gx.^2+gy.^2;
+        
+        L=(DtMap(:,:,t,channel).*PCscoreMap)<0;
+%         L=imerode(L,SE);
+%         L=rmCC_bandPass(L,0,inf);
+        
+        seedMap(:,:,t,channel)=L;
+        bg=~(DtMap(:,:,t,channel));
+        bg=imerode(bg,SE_large);
+        L(bg)=1; 
+        L = splitROIbyWtrshd3D(ones(size(im)),L,GradScoreMap);
+        
+        cellMap_PCrefine(:,:,t,channel)=rmCC_bandPass(L,minSz,maxSz).*DtMap(:,:,t,channel),minSz,maxSz);
+    end
+end
+%%
+imOut1=visDataVideo(dat);
+imOut2=visDataVideo(cellMap_PCrefine);
+imOut=cat(2,imOut1,imOut2);
+implay(imOut)
+
+% a=GradScoreMap;
+% a(L>0)=0;
+% b=mat2gray(a);
+% imshow(b)
